@@ -14,7 +14,12 @@ const patientSchema = new mongoose.Schema(
     },
     weight: { type: Number, required: true, min: 1 },
     height: { type: Number, required: true, min: 1 },
-    contactNumber: { type: String, required: true, trim: true },
+    contactNumber: {
+      type: String,
+      required: true,
+      trim: true,
+      match: [/^\d{10}$/, 'Contact number must be exactly 10 digits.'],
+    },
   },
   { timestamps: true }
 )

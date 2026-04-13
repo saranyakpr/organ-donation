@@ -32,7 +32,10 @@ const PledgePage = () => {
 
   const handleChange = (event) => {
     const { name, value } = event.target
-    setPledge((current) => ({ ...current, [name]: value }))
+    const nextValue =
+      name === 'contactNumber' ? value.replace(/\D/g, '').slice(0, 10) : value
+
+    setPledge((current) => ({ ...current, [name]: nextValue }))
   }
 
   const toggleOrgan = (organ) => {
@@ -189,7 +192,10 @@ const PledgePage = () => {
                 name='contactNumber'
                 value={pledge.contactNumber}
                 onChange={handleChange}
-                placeholder='Phone number'
+                inputMode='numeric'
+                pattern='\d{10}'
+                maxLength='10'
+                placeholder='Enter 10-digit contact number'
                 required
               />
             </label>

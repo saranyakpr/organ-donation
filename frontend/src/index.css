@@ -82,6 +82,16 @@ textarea {
   transform: translateY(-1px);
 }
 
+.field-error {
+  border-color: rgba(225, 29, 72, 0.7);
+  box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.08);
+}
+
+.field-error:focus {
+  border-color: rgba(225, 29, 72, 0.8);
+  box-shadow: 0 0 0 4px rgba(225, 29, 72, 0.14);
+}
+
 .badge {
   display: inline-flex;
   align-items: center;

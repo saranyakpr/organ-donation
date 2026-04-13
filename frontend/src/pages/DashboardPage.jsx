@@ -13,6 +13,7 @@ import api from '../api/client'
 
 const bloodTypes = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
 const organs = ['Kidney', 'Liver', 'Heart', 'Lung', 'Pancreas', 'Cornea']
+const pageSize = 10
 const initialRecord = {
   fullName: '',
   age: '',
@@ -60,6 +61,36 @@ const dashboardTabs = [
   },
 ]
 
+const Toast = ({ toast, onClose }) => {
+  if (!toast.message) {
+    return null
+  }
+
+  return (
+    <div className='fixed right-4 top-4 z-50 w-[min(92vw,24rem)]'>
+      <div
+        className={`rounded-[1.5rem] border px-5 py-4 shadow-xl backdrop-blur ${
+          toast.type === 'success'
+            ? 'border-emerald-200 bg-emerald-50/95 text-emerald-700'
+            : 'border-rose-200 bg-rose-50/95 text-rose-700'
+        }`}
+      >
+        <div className='flex items-start justify-between gap-4'>
+          <p className='text-sm font-semibold'>{toast.message}</p>
+          <button
+            type='button'
+            onClick={onClose}
+            className='text-lg leading-none opacity-70 transition hover:opacity-100'
+            aria-label='Close notification'
+          >
+            ×
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 const DataTable = ({ columns, rows, emptyMessage }) => (
   <div className='table-scroll rounded-[1.5rem] border border-stone-200/70 bg-white/75'>
     <table className='text-sm'>
@@ -93,6 +124,38 @@ const DataTable = ({ columns, rows, emptyMessage }) => (
   </div>
 )
 
+const PaginationControls = ({ pagination, onPageChange }) => {
+  if (!pagination || pagination.totalPages <= 1) {
+    return null
+  }
+
+  return (
+    <div className='mt-5 flex flex-col gap-3 border-t border-stone-200/80 pt-4 text-sm text-stone-600 sm:flex-row sm:items-center sm:justify-between'>
+      <p>
+        Page {pagination.page} of {pagination.totalPages} · {pagination.totalItems} total
+      </p>
+      <div className='flex items-center gap-3'>
+        <button
+          type='button'
+          onClick={() => onPageChange(pagination.page - 1)}
+          disabled={pagination.page <= 1}
+          className='rounded-full border border-stone-300 bg-white px-4 py-2 font-semibold text-stone-700 transition hover:border-[var(--brand)] hover:text-[var(--brand)] disabled:cursor-not-allowed disabled:opacity-50'
+        >
+          Previous
+        </button>
+        <button
+          type='button'
+          onClick={() => onPageChange(pagination.page + 1)}
+          disabled={pagination.page >= pagination.totalPages}
+          className='rounded-full bg-[var(--brand)] px-4 py-2 font-semibold text-white transition hover:bg-[var(--brand-deep)] disabled:cursor-not-allowed disabled:opacity-50'
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  )
+}
+
 const DashboardPage = () => {
   const { user, logout } = useAuth()
   const [overview, setOverview] = useState({
@@ -105,32 +168,49 @@ const DashboardPage = () => {
   const [patients, setPatients] = useState([])
   const [pledges, setPledges] = useState([])
   const [matches, setMatches] = useState([])
+  const [donorPagination, setDonorPagination] = useState(null)
+  const [patientPagination, setPatientPagination] = useState(null)
+  const [matchPagination, setMatchPagination] = useState(null)
+  const [donorPage, setDonorPage] = useState(1)
+  const [patientPage, setPatientPage] = useState(1)
+  const [matchPage, setMatchPage] = useState(1)
+  const [donorRefreshKey, setDonorRefreshKey] = useState(0)
+  const [patientRefreshKey, setPatientRefreshKey] = useState(0)
+  const [matchRefreshKey, setMatchRefreshKey] = useState(0)
   const [status, setStatus] = useState({ type: '', message: '' })
-  const [searchResults, setSearchResults] = useState({ donor: null, patient: null })
-  const [searchValues, setSearchValues] = useState({ donorMedicalId: '', patientMedicalId: '' })
+  const [toast, setToast] = useState({ type: '', message: '' })
+  const [fieldErrors, setFieldErrors] = useState({
+    donor: {},
+    patient: {},
+  })
+  const [searchResults, setSearchResults] = useState({
+    donor: null,
+    patient: null,
+    donorList: [],
+    patientList: [],
+  })
+  const [searchValues, setSearchValues] = useState({
+    donorMedicalId: '',
+    patientMedicalId: '',
+    donorOrgan: '',
+    patientOrgan: '',
+  })
   const [donorForm, setDonorForm] = useState(initialRecord)
   const [patientForm, setPatientForm] = useState(initialRecord)
   const [activeTab, setActiveTab] = useState('donors')
   const [loading, setLoading] = useState(true)
 
-  const loadDashboard = async () => {
+  const loadDashboardSummary = async () => {
     setLoading(true)
 
     try {
-      const [overviewResponse, donorResponse, patientResponse, pledgeResponse, matchResponse] =
-        await Promise.all([
-          api.get('/dashboard/overview'),
-          api.get('/donors'),
-          api.get('/patients'),
-          api.get('/pledges?status=pending'),
-          api.get('/matches'),
-        ])
+      const [overviewResponse, pledgeResponse] = await Promise.all([
+        api.get('/dashboard/overview'),
+        api.get('/pledges?status=pending'),
+      ])
 
       setOverview(overviewResponse.data)
-      setDonors(donorResponse.data.donors)
-      setPatients(patientResponse.data.patients)
       setPledges(pledgeResponse.data.pledges)
-      setMatches(matchResponse.data.matches)
     } catch (error) {
       setStatus({
         type: 'error',
@@ -142,8 +222,71 @@ const DashboardPage = () => {
   }
 
   useEffect(() => {
-    loadDashboard()
+    loadDashboardSummary()
   }, [])
+
+  useEffect(() => {
+    if (!toast.message) {
+      return undefined
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setToast({ type: '', message: '' })
+    }, 3500)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [toast])
+
+  useEffect(() => {
+    const loadDonors = async () => {
+      try {
+        const { data } = await api.get(`/donors?page=${donorPage}&limit=${pageSize}`)
+        setDonors(data.donors)
+        setDonorPagination(data.pagination)
+      } catch (error) {
+        setStatus({
+          type: 'error',
+          message: error.response?.data?.message || 'Unable to load donors.',
+        })
+      }
+    }
+
+    loadDonors()
+  }, [donorPage, donorRefreshKey])
+
+  useEffect(() => {
+    const loadPatients = async () => {
+      try {
+        const { data } = await api.get(`/patients?page=${patientPage}&limit=${pageSize}`)
+        setPatients(data.patients)
+        setPatientPagination(data.pagination)
+      } catch (error) {
+        setStatus({
+          type: 'error',
+          message: error.response?.data?.message || 'Unable to load patients.',
+        })
+      }
+    }
+
+    loadPatients()
+  }, [patientPage, patientRefreshKey])
+
+  useEffect(() => {
+    const loadMatches = async () => {
+      try {
+        const { data } = await api.get(`/matches?page=${matchPage}&limit=${pageSize}`)
+        setMatches(data.matches)
+        setMatchPagination(data.pagination)
+      } catch (error) {
+        setStatus({
+          type: 'error',
+          message: error.response?.data?.message || 'Unable to load transplant matches.',
+        })
+      }
+    }
+
+    loadMatches()
+  }, [matchPage, matchRefreshKey])
 
   const toggleOrgan = (target, organ) => {
     const setter = target === 'donor' ? setDonorForm : setPatientForm
@@ -159,28 +302,57 @@ const DashboardPage = () => {
   const handleRecordChange = (target, event) => {
     const setter = target === 'donor' ? setDonorForm : setPatientForm
     const { name, value } = event.target
-    setter((current) => ({ ...current, [name]: value }))
+    const nextValue =
+      name === 'contactNumber' ? value.replace(/\D/g, '').slice(0, 10) : value
+
+    setter((current) => ({ ...current, [name]: nextValue }))
+    setFieldErrors((current) => ({
+      ...current,
+      [target]: {
+        ...current[target],
+        [name]: '',
+      },
+    }))
   }
 
   const createRecord = async (type, payload) => {
     setStatus({ type: '', message: '' })
+    setFieldErrors((current) => ({ ...current, [type]: {} }))
 
     try {
       await api.post(`/${type}s`, payload)
-      setStatus({
+      setToast({
         type: 'success',
         message: `${type === 'donor' ? 'Donor' : 'Patient'} registered successfully.`,
       })
       if (type === 'donor') {
         setDonorForm(initialRecord)
+        setDonorPage(1)
+        setDonorRefreshKey((current) => current + 1)
       } else {
         setPatientForm(initialRecord)
+        setPatientPage(1)
+        setPatientRefreshKey((current) => current + 1)
       }
-      await loadDashboard()
+      setMatchPage(1)
+      setMatchRefreshKey((current) => current + 1)
+      await loadDashboardSummary()
     } catch (error) {
-      setStatus({
+      const message = error.response?.data?.message || `Unable to create the ${type} record.`
+
+      if (message.includes('medical ID already exists')) {
+        setFieldErrors((current) => ({
+          ...current,
+          [type]: {
+            ...current[type],
+            medicalId: message,
+          },
+        }))
+      }
+
+      setToast({
         type: 'error',
-        message: error.response?.data?.message || `Unable to create the ${type} record.`,
+        message,
       })
     }
   }
@@ -200,7 +372,11 @@ const DashboardPage = () => {
         type: 'success',
         message: 'Pledge verified and added to the donor registry.',
       })
-      await loadDashboard()
+      setDonorPage(1)
+      setMatchPage(1)
+      setDonorRefreshKey((current) => current + 1)
+      setMatchRefreshKey((current) => current + 1)
+      await loadDashboardSummary()
     } catch (error) {
       setStatus({
         type: 'error',
@@ -214,22 +390,54 @@ const DashboardPage = () => {
     setSearchValues((current) => ({ ...current, [name]: value }))
   }
 
+  const clearSearchField = (type) => {
+    setSearchValues((current) => ({
+      ...current,
+      [`${type}MedicalId`]: '',
+    }))
+    setSearchResults((current) => ({
+      ...current,
+      [type]: null,
+      [`${type}List`]: [],
+    }))
+  }
+
   const searchRecord = async (type) => {
     const field = type === 'donor' ? 'donorMedicalId' : 'patientMedicalId'
-    const medicalId = searchValues[field]
+    const organField = type === 'donor' ? 'donorOrgan' : 'patientOrgan'
+    const medicalId = searchValues[field].trim()
+    const organ = searchValues[organField].trim()
 
-    if (!medicalId) {
-      setStatus({ type: 'error', message: `Enter a ${type} medical ID before searching.` })
+    if (!medicalId && !organ) {
+      setToast({
+        type: 'error',
+        message: `Enter a ${type} medical ID or organ before searching.`,
+      })
       return
     }
 
     try {
-      const { data } = await api.get(`/${type}s/search/${medicalId}`)
-      setSearchResults((current) => ({ ...current, [type]: data[type] }))
-      setStatus({ type: 'success', message: `${type === 'donor' ? 'Donor' : 'Patient'} found.` })
+      const params = new URLSearchParams()
+
+      if (medicalId) {
+        params.set('medicalId', medicalId)
+      } else if (organ) {
+        params.set('organ', organ)
+      }
+
+      const { data } = await api.get(`/${type}s/search?${params.toString()}`)
+      setSearchResults((current) => ({
+        ...current,
+        [type]: data[type] || null,
+        [`${type}List`]: data[`${type}s`] || [],
+      }))
+      setToast({
+        type: 'success',
+        message: `${type === 'donor' ? 'Donor' : 'Patient'} search completed.`,
+      })
     } catch (error) {
-      setSearchResults((current) => ({ ...current, [type]: null }))
-      setStatus({
+      setSearchResults((current) => ({ ...current, [type]: null, [`${type}List`]: [] }))
+      setToast({
         type: 'error',
         message: error.response?.data?.message || `Unable to find that ${type}.`,
       })
@@ -258,7 +466,18 @@ const DashboardPage = () => {
           </label>
           <label className='block space-y-2 text-sm font-semibold text-stone-700'>
             <span>Medical ID</span>
-            <input className='field' name='medicalId' value={formState.medicalId} onChange={(event) => handleRecordChange(target, event)} required />
+            <input
+              className={`field ${fieldErrors[target]?.medicalId ? 'field-error' : ''}`}
+              name='medicalId'
+              value={formState.medicalId}
+              onChange={(event) => handleRecordChange(target, event)}
+              required
+            />
+            {fieldErrors[target]?.medicalId ? (
+              <span className='text-sm font-semibold text-rose-600'>
+                {fieldErrors[target].medicalId}
+              </span>
+            ) : null}
           </label>
           <label className='block space-y-2 text-sm font-semibold text-stone-700'>
             <span>Blood type</span>
@@ -278,7 +497,17 @@ const DashboardPage = () => {
           </label>
           <label className='block space-y-2 text-sm font-semibold text-stone-700 md:col-span-2'>
             <span>Contact number</span>
-            <input className='field' name='contactNumber' value={formState.contactNumber} onChange={(event) => handleRecordChange(target, event)} required />
+            <input
+              className='field'
+              name='contactNumber'
+              value={formState.contactNumber}
+              onChange={(event) => handleRecordChange(target, event)}
+              inputMode='numeric'
+              pattern='\d{10}'
+              maxLength='10'
+              placeholder='Enter 10-digit contact number'
+              required
+            />
           </label>
         </div>
         <div>
@@ -324,6 +553,7 @@ const DashboardPage = () => {
           rows={donors}
           emptyMessage='No donors registered yet.'
         />
+        <PaginationControls pagination={donorPagination} onPageChange={setDonorPage} />
       </SectionCard>
     </div>
   )
@@ -338,6 +568,7 @@ const DashboardPage = () => {
           rows={patients}
           emptyMessage='No patients registered yet.'
         />
+        <PaginationControls pagination={patientPagination} onPageChange={setPatientPage} />
       </SectionCard>
     </div>
   )
@@ -345,14 +576,39 @@ const DashboardPage = () => {
   const renderSearchTab = () => (
     <section className='grid gap-6 xl:grid-cols-2'>
       <SectionCard title='Quick search' eyebrow='Search donor'>
-        <div className='flex flex-col gap-3 sm:flex-row'>
-          <input
+        <div className='grid gap-3 lg:grid-cols-[1fr_1fr_auto]'>
+          <div className='relative'>
+            <input
+              className='field pr-12'
+              name='donorMedicalId'
+              value={searchValues.donorMedicalId}
+              onChange={handleSearchInput}
+              placeholder='Enter donor medical ID'
+            />
+            {searchValues.donorMedicalId ? (
+              <button
+                type='button'
+                onClick={() => clearSearchField('donor')}
+                className='absolute right-4 top-1/2 -translate-y-1/2 text-lg font-bold text-stone-400 transition hover:text-stone-700'
+                aria-label='Clear donor medical ID'
+              >
+                ×
+              </button>
+            ) : null}
+          </div>
+          <select
             className='field'
-            name='donorMedicalId'
-            value={searchValues.donorMedicalId}
+            name='donorOrgan'
+            value={searchValues.donorOrgan}
             onChange={handleSearchInput}
-            placeholder='Enter donor medical ID'
-          />
+          >
+            <option value=''>Search by organ instead</option>
+            {organs.map((organ) => (
+              <option key={organ} value={organ}>
+                {organ}
+              </option>
+            ))}
+          </select>
           <button
             onClick={() => searchRecord('donor')}
             className='inline-flex items-center justify-center gap-2 rounded-2xl bg-[var(--brand)] px-5 py-3 text-sm font-bold text-white transition hover:bg-[var(--brand-deep)]'
@@ -364,22 +620,61 @@ const DashboardPage = () => {
         {searchResults.donor ? (
           <div className='mt-5 rounded-[1.5rem] bg-white/70 p-4 text-sm text-stone-700'>
             <p><strong>Name:</strong> {searchResults.donor.fullName}</p>
+            <p><strong>Medical ID:</strong> {searchResults.donor.medicalId}</p>
             <p><strong>Blood type:</strong> {searchResults.donor.bloodType}</p>
-            <p><strong>Organs:</strong> {searchResults.donor.organs.join(', ')}</p>
+            <p><strong>Available organs:</strong> {searchResults.donor.organs.join(', ')}</p>
             <p><strong>Contact:</strong> {searchResults.donor.contactNumber}</p>
+          </div>
+        ) : null}
+        {searchResults.donorList.length > 0 && !searchResults.donor ? (
+          <div className='mt-5 space-y-3'>
+            {searchResults.donorList.map((donor) => (
+              <div key={donor._id} className='rounded-[1.5rem] bg-white/70 p-4 text-sm text-stone-700'>
+                <p><strong>Name:</strong> {donor.fullName}</p>
+                <p><strong>Medical ID:</strong> {donor.medicalId}</p>
+                <p><strong>Blood type:</strong> {donor.bloodType}</p>
+                <p><strong>Available organs:</strong> {donor.organs.join(', ')}</p>
+                <p><strong>Contact:</strong> {donor.contactNumber}</p>
+              </div>
+            ))}
           </div>
         ) : null}
       </SectionCard>
 
       <SectionCard title='Quick search' eyebrow='Search patient'>
-        <div className='flex flex-col gap-3 sm:flex-row'>
-          <input
+        <div className='grid gap-3 lg:grid-cols-[1fr_1fr_auto]'>
+          <div className='relative'>
+            <input
+              className='field pr-12'
+              name='patientMedicalId'
+              value={searchValues.patientMedicalId}
+              onChange={handleSearchInput}
+              placeholder='Enter patient medical ID'
+            />
+            {searchValues.patientMedicalId ? (
+              <button
+                type='button'
+                onClick={() => clearSearchField('patient')}
+                className='absolute right-4 top-1/2 -translate-y-1/2 text-lg font-bold text-stone-400 transition hover:text-stone-700'
+                aria-label='Clear patient medical ID'
+              >
+                ×
+              </button>
+            ) : null}
+          </div>
+          <select
             className='field'
-            name='patientMedicalId'
-            value={searchValues.patientMedicalId}
+            name='patientOrgan'
+            value={searchValues.patientOrgan}
             onChange={handleSearchInput}
-            placeholder='Enter patient medical ID'
-          />
+          >
+            <option value=''>Search by organ instead</option>
+            {organs.map((organ) => (
+              <option key={organ} value={organ}>
+                {organ}
+              </option>
+            ))}
+          </select>
           <button
             onClick={() => searchRecord('patient')}
             className='inline-flex items-center justify-center gap-2 rounded-2xl bg-[var(--brand)] px-5 py-3 text-sm font-bold text-white transition hover:bg-[var(--brand-deep)]'
@@ -391,9 +686,23 @@ const DashboardPage = () => {
         {searchResults.patient ? (
           <div className='mt-5 rounded-[1.5rem] bg-white/70 p-4 text-sm text-stone-700'>
             <p><strong>Name:</strong> {searchResults.patient.fullName}</p>
+            <p><strong>Medical ID:</strong> {searchResults.patient.medicalId}</p>
             <p><strong>Blood type:</strong> {searchResults.patient.bloodType}</p>
             <p><strong>Organs needed:</strong> {searchResults.patient.organs.join(', ')}</p>
             <p><strong>Contact:</strong> {searchResults.patient.contactNumber}</p>
+          </div>
+        ) : null}
+        {searchResults.patientList.length > 0 && !searchResults.patient ? (
+          <div className='mt-5 space-y-3'>
+            {searchResults.patientList.map((patient) => (
+              <div key={patient._id} className='rounded-[1.5rem] bg-white/70 p-4 text-sm text-stone-700'>
+                <p><strong>Name:</strong> {patient.fullName}</p>
+                <p><strong>Medical ID:</strong> {patient.medicalId}</p>
+                <p><strong>Blood type:</strong> {patient.bloodType}</p>
+                <p><strong>Organs needed:</strong> {patient.organs.join(', ')}</p>
+                <p><strong>Contact:</strong> {patient.contactNumber}</p>
+              </div>
+            ))}
           </div>
         ) : null}
       </SectionCard>
@@ -445,6 +754,7 @@ const DashboardPage = () => {
         rows={matches}
         emptyMessage='No matches available yet.'
       />
+      <PaginationControls pagination={matchPagination} onPageChange={setMatchPage} />
     </SectionCard>
   )
 
@@ -466,6 +776,7 @@ const DashboardPage = () => {
 
   return (
     <div className='px-4 py-4 sm:px-6 lg:px-8'>
+      <Toast toast={toast} onClose={() => setToast({ type: '', message: '' })} />
       <div className='mx-auto max-w-7xl space-y-6'>
         <header className='glass-panel rounded-[2rem] px-5 py-5 sm:px-7'>
           <div className='flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between'>
@@ -482,7 +793,16 @@ const DashboardPage = () => {
               <div className='rounded-full bg-white/80 px-4 py-2 text-sm font-semibold text-stone-700'>
                 {user?.organization}
               </div>
-              <button onClick={logout} className='inline-flex items-center gap-2 rounded-full bg-stone-950 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-stone-800'>
+              <button
+                onClick={() => {
+                  const confirmed = window.confirm('Are you sure you want to logout?')
+
+                  if (confirmed) {
+                    logout()
+                  }
+                }}
+                className='inline-flex items-center gap-2 rounded-full bg-stone-950 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-stone-800'
+              >
                 <LogOut className='h-4 w-4' />
                 Logout
               </button>

@@ -1,5 +1,5 @@
 const envConfig = {
-  apiUrl: 'http://localhost:5000/api',
+  apiUrl: 'https://organ-donation-backend-id3z.onrender.com/api',
 }
 
 export default envConfig

@@ -1,7 +1,8 @@
 import jwt from 'jsonwebtoken'
+import envConfig from '../../envConfig.js'
 import User from '../models/User.js'
 
-const signToken = (id) => jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '7d' })
+const signToken = (id) => jwt.sign({ id }, envConfig.jwtSecret, { expiresIn: '7d' })
 
 const sanitizeUser = (user) => ({
   id: user._id,

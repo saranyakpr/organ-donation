@@ -1,7 +1,8 @@
 import mongoose from 'mongoose'
+import envConfig from '../../envConfig.js'
 
 const connectDatabase = async () => {
-  const uri = process.env.MONGODB_URI
+  const uri = envConfig.mongoDbUri
 
   if (!uri) {
     throw new Error('MONGODB_URI is not configured.')

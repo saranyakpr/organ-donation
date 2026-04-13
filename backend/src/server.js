@@ -1,7 +1,7 @@
-import 'dotenv/config'
 import cors from 'cors'
 import express from 'express'
 import morgan from 'morgan'
+import envConfig from '../envConfig.js'
 import connectDatabase from './config/db.js'
 import authRoutes from './routes/authRoutes.js'
 import dashboardRoutes from './routes/dashboardRoutes.js'
@@ -11,11 +11,11 @@ import patientRoutes from './routes/patientRoutes.js'
 import pledgeRoutes from './routes/pledgeRoutes.js'
 
 const app = express()
-const port = process.env.PORT || 5000
+const port = envConfig.port || 5000
 
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+    origin: envConfig.clientUrl || 'http://localhost:5173',
   })
 )
 app.use(express.json())

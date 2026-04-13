@@ -36,6 +36,9 @@ const LoginPage = () => {
     <AuthShell
       title='Welcome back'
       subtitle='Sign in to review pledges, manage donor and patient registrations, and view transplant matches.'
+      altLabel='Need an admin account?'
+      altHref='/register'
+      altAction='Create one'
     >
       <form className='space-y-4' onSubmit={handleSubmit}>
         <label className='block space-y-2 text-sm font-semibold text-stone-700'>

@@ -39,12 +39,14 @@ const AuthShell = ({ title, subtitle, children, altLabel, altHref, altAction }) 
           <p className='mt-3 max-w-lg text-sm leading-6 text-stone-600'>{subtitle}</p>
         </div>
         {children}
-        <p className='mt-6 text-sm text-stone-600'>
-          {altLabel}{' '}
-          <Link className='font-bold text-[var(--brand)]' to={altHref}>
-            {altAction}
-          </Link>
-        </p>
+        {altLabel && altHref && altAction ? (
+          <p className='mt-6 text-sm text-stone-600'>
+            {altLabel}{' '}
+            <Link className='font-bold text-[var(--brand)]' to={altHref}>
+              {altAction}
+            </Link>
+          </p>
+        ) : null}
       </div>
     </div>
   </div>

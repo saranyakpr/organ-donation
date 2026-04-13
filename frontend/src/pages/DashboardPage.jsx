@@ -91,6 +91,37 @@ const Toast = ({ toast, onClose }) => {
   )
 }
 
+const ConfirmDialog = ({ open, title, message, confirmLabel, onCancel, onConfirm }) => {
+  if (!open) {
+    return null
+  }
+
+  return (
+    <div className='fixed inset-0 z-50 flex items-center justify-center bg-slate-950/35 px-4 backdrop-blur-sm'>
+      <div className='glass-panel w-full max-w-md rounded-[2rem] p-6 sm:p-7'>
+        <h3 className='text-2xl font-extrabold text-stone-950'>{title}</h3>
+        <p className='mt-3 text-sm leading-6 text-stone-600'>{message}</p>
+        <div className='mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end'>
+          <button
+            type='button'
+            onClick={onCancel}
+            className='rounded-full border border-stone-300 bg-white px-5 py-3 text-sm font-bold text-stone-700 transition hover:border-stone-400'
+          >
+            Cancel
+          </button>
+          <button
+            type='button'
+            onClick={onConfirm}
+            className='rounded-full bg-[var(--brand)] px-5 py-3 text-sm font-bold text-white transition hover:bg-[var(--brand-deep)]'
+          >
+            {confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 const DataTable = ({ columns, rows, emptyMessage }) => (
   <div className='table-scroll rounded-[1.5rem] border border-stone-200/70 bg-white/75'>
     <table className='text-sm'>
@@ -198,6 +229,7 @@ const DashboardPage = () => {
   const [donorForm, setDonorForm] = useState(initialRecord)
   const [patientForm, setPatientForm] = useState(initialRecord)
   const [activeTab, setActiveTab] = useState('donors')
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
   const [loading, setLoading] = useState(true)
 
   const loadDashboardSummary = async () => {
@@ -777,6 +809,17 @@ const DashboardPage = () => {
   return (
     <div className='px-4 py-4 sm:px-6 lg:px-8'>
       <Toast toast={toast} onClose={() => setToast({ type: '', message: '' })} />
+      <ConfirmDialog
+        open={showLogoutConfirm}
+        title='Confirm logout'
+        message='Are you sure you want to logout from the dashboard?'
+        confirmLabel='Logout'
+        onCancel={() => setShowLogoutConfirm(false)}
+        onConfirm={() => {
+          setShowLogoutConfirm(false)
+          logout()
+        }}
+      />
       <div className='mx-auto max-w-7xl space-y-6'>
         <header className='glass-panel rounded-[2rem] px-5 py-5 sm:px-7'>
           <div className='flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between'>
@@ -790,17 +833,11 @@ const DashboardPage = () => {
               </p>
             </div>
             <div className='flex flex-wrap items-center gap-3'>
-              <div className='rounded-full bg-white/80 px-4 py-2 text-sm font-semibold text-stone-700'>
+              {/* <div className='rounded-full bg-white/80 px-4 py-2 text-sm font-semibold text-stone-700'>
                 {user?.organization}
-              </div>
+              </div> */}
               <button
-                onClick={() => {
-                  const confirmed = window.confirm('Are you sure you want to logout?')
-
-                  if (confirmed) {
-                    logout()
-                  }
-                }}
+                onClick={() => setShowLogoutConfirm(true)}
                 className='inline-flex items-center gap-2 rounded-full bg-stone-950 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-stone-800'
               >
                 <LogOut className='h-4 w-4' />

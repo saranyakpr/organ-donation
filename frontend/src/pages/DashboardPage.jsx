@@ -32,6 +32,34 @@ const statCards = [
   { key: 'matchCount', label: 'Potential matches', icon: HeartHandshake },
 ]
 
+const dashboardTabs = [
+  {
+    key: 'donors',
+    label: 'Donors',
+    description: 'Register and review donor records',
+  },
+  {
+    key: 'patients',
+    label: 'Patients',
+    description: 'Register and review patient records',
+  },
+  {
+    key: 'search',
+    label: 'Quick Search',
+    description: 'Find donors and patients by medical ID',
+  },
+  {
+    key: 'pledges',
+    label: 'Pending Pledges',
+    description: 'Verify incoming donor pledges',
+  },
+  {
+    key: 'matches',
+    label: 'Transplant Matches',
+    description: 'Review potential donor-recipient matches',
+  },
+]
+
 const DataTable = ({ columns, rows, emptyMessage }) => (
   <div className='table-scroll rounded-[1.5rem] border border-stone-200/70 bg-white/75'>
     <table className='text-sm'>
@@ -82,6 +110,7 @@ const DashboardPage = () => {
   const [searchValues, setSearchValues] = useState({ donorMedicalId: '', patientMedicalId: '' })
   const [donorForm, setDonorForm] = useState(initialRecord)
   const [patientForm, setPatientForm] = useState(initialRecord)
+  const [activeTab, setActiveTab] = useState('donors')
   const [loading, setLoading] = useState(true)
 
   const loadDashboard = async () => {
@@ -285,6 +314,156 @@ const DashboardPage = () => {
     </SectionCard>
   )
 
+  const renderDonorsTab = () => (
+    <div className='space-y-6'>
+      {renderForm('Donor', 'Register donor', 'donor', donorForm, submitRecord('donor'))}
+
+      <SectionCard title='Registered donors' eyebrow='View donors'>
+        <DataTable
+          columns={['fullName', 'medicalId', 'bloodType', 'organs', 'contactNumber']}
+          rows={donors}
+          emptyMessage='No donors registered yet.'
+        />
+      </SectionCard>
+    </div>
+  )
+
+  const renderPatientsTab = () => (
+    <div className='space-y-6'>
+      {renderForm('Patient', 'Register patient', 'patient', patientForm, submitRecord('patient'))}
+
+      <SectionCard title='Registered patients' eyebrow='View patients'>
+        <DataTable
+          columns={['fullName', 'medicalId', 'bloodType', 'organs', 'contactNumber']}
+          rows={patients}
+          emptyMessage='No patients registered yet.'
+        />
+      </SectionCard>
+    </div>
+  )
+
+  const renderSearchTab = () => (
+    <section className='grid gap-6 xl:grid-cols-2'>
+      <SectionCard title='Quick search' eyebrow='Search donor'>
+        <div className='flex flex-col gap-3 sm:flex-row'>
+          <input
+            className='field'
+            name='donorMedicalId'
+            value={searchValues.donorMedicalId}
+            onChange={handleSearchInput}
+            placeholder='Enter donor medical ID'
+          />
+          <button
+            onClick={() => searchRecord('donor')}
+            className='inline-flex items-center justify-center gap-2 rounded-2xl bg-[var(--brand)] px-5 py-3 text-sm font-bold text-white transition hover:bg-[var(--brand-deep)]'
+          >
+            <Search className='h-4 w-4' />
+            Search donor
+          </button>
+        </div>
+        {searchResults.donor ? (
+          <div className='mt-5 rounded-[1.5rem] bg-white/70 p-4 text-sm text-stone-700'>
+            <p><strong>Name:</strong> {searchResults.donor.fullName}</p>
+            <p><strong>Blood type:</strong> {searchResults.donor.bloodType}</p>
+            <p><strong>Organs:</strong> {searchResults.donor.organs.join(', ')}</p>
+            <p><strong>Contact:</strong> {searchResults.donor.contactNumber}</p>
+          </div>
+        ) : null}
+      </SectionCard>
+
+      <SectionCard title='Quick search' eyebrow='Search patient'>
+        <div className='flex flex-col gap-3 sm:flex-row'>
+          <input
+            className='field'
+            name='patientMedicalId'
+            value={searchValues.patientMedicalId}
+            onChange={handleSearchInput}
+            placeholder='Enter patient medical ID'
+          />
+          <button
+            onClick={() => searchRecord('patient')}
+            className='inline-flex items-center justify-center gap-2 rounded-2xl bg-[var(--brand)] px-5 py-3 text-sm font-bold text-white transition hover:bg-[var(--brand-deep)]'
+          >
+            <Search className='h-4 w-4' />
+            Search patient
+          </button>
+        </div>
+        {searchResults.patient ? (
+          <div className='mt-5 rounded-[1.5rem] bg-white/70 p-4 text-sm text-stone-700'>
+            <p><strong>Name:</strong> {searchResults.patient.fullName}</p>
+            <p><strong>Blood type:</strong> {searchResults.patient.bloodType}</p>
+            <p><strong>Organs needed:</strong> {searchResults.patient.organs.join(', ')}</p>
+            <p><strong>Contact:</strong> {searchResults.patient.contactNumber}</p>
+          </div>
+        ) : null}
+      </SectionCard>
+    </section>
+  )
+
+  const renderPledgesTab = () => (
+    <SectionCard title='Pending pledge verification' eyebrow='Approve donor pledges'>
+      <div className='space-y-4'>
+        {pledges.length === 0 ? (
+          <div className='rounded-[1.5rem] border border-dashed border-stone-300 bg-white/60 px-5 py-8 text-center text-sm text-stone-500'>
+            No pending pledges right now.
+          </div>
+        ) : (
+          pledges.map((pledge) => (
+            <div key={pledge._id} className='flex flex-col gap-4 rounded-[1.5rem] border border-stone-200/80 bg-white/70 p-5 lg:flex-row lg:items-center lg:justify-between'>
+              <div className='space-y-1 text-sm text-stone-700'>
+                <p className='text-lg font-extrabold text-stone-950'>{pledge.fullName}</p>
+                <p>Medical ID: {pledge.medicalId}</p>
+                <p>Blood type: {pledge.bloodType}</p>
+                <p>Organs: {pledge.organs.join(', ')}</p>
+                <p>Contact: {pledge.contactNumber}</p>
+              </div>
+              <button
+                onClick={() => approvePledge(pledge._id)}
+                className='rounded-full bg-[var(--brand)] px-5 py-3 text-sm font-bold text-white transition hover:bg-[var(--brand-deep)]'
+              >
+                Verify and add donor
+              </button>
+            </div>
+          ))
+        )}
+      </div>
+    </SectionCard>
+  )
+
+  const renderMatchesTab = () => (
+    <SectionCard title='Transplant matches' eyebrow='Potential recommendations'>
+      <DataTable
+        columns={[
+          'patientName',
+          'patientMedicalId',
+          'requiredOrgan',
+          'recipientBloodType',
+          'donorName',
+          'donorMedicalId',
+          'donorBloodType',
+        ]}
+        rows={matches}
+        emptyMessage='No matches available yet.'
+      />
+    </SectionCard>
+  )
+
+  const renderActiveTab = () => {
+    switch (activeTab) {
+      case 'patients':
+        return renderPatientsTab()
+      case 'search':
+        return renderSearchTab()
+      case 'pledges':
+        return renderPledgesTab()
+      case 'matches':
+        return renderMatchesTab()
+      case 'donors':
+      default:
+        return renderDonorsTab()
+    }
+  }
+
   return (
     <div className='px-4 py-4 sm:px-6 lg:px-8'>
       <div className='mx-auto max-w-7xl space-y-6'>
@@ -333,86 +512,47 @@ const DashboardPage = () => {
           ))}
         </section>
 
-        <section className='grid gap-6 xl:grid-cols-2'>
-          {renderForm('Donor', 'Register donor', 'donor', donorForm, submitRecord('donor'))}
-          {renderForm('Patient', 'Register patient', 'patient', patientForm, submitRecord('patient'))}
-        </section>
+        <section className='glass-panel rounded-[2rem] p-4 sm:p-5'>
+          <div className='grid gap-3 md:grid-cols-2 xl:grid-cols-4'>
+            {dashboardTabs.map((tab) => {
+              const active = activeTab === tab.key
 
-        <section className='grid gap-6 xl:grid-cols-2'>
-          <SectionCard title='Quick search' eyebrow='Search donor'>
-            <div className='flex flex-col gap-3 sm:flex-row'>
-              <input className='field' name='donorMedicalId' value={searchValues.donorMedicalId} onChange={handleSearchInput} placeholder='Enter donor medical ID' />
-              <button onClick={() => searchRecord('donor')} className='inline-flex items-center justify-center gap-2 rounded-2xl bg-[var(--brand)] px-5 py-3 text-sm font-bold text-white transition hover:bg-[var(--brand-deep)]'>
-                <Search className='h-4 w-4' />
-                Search donor
-              </button>
-            </div>
-            {searchResults.donor ? (
-              <div className='mt-5 rounded-[1.5rem] bg-white/70 p-4 text-sm text-stone-700'>
-                <p><strong>Name:</strong> {searchResults.donor.fullName}</p>
-                <p><strong>Blood type:</strong> {searchResults.donor.bloodType}</p>
-                <p><strong>Organs:</strong> {searchResults.donor.organs.join(', ')}</p>
-                <p><strong>Contact:</strong> {searchResults.donor.contactNumber}</p>
-              </div>
-            ) : null}
-          </SectionCard>
-
-          <SectionCard title='Quick search' eyebrow='Search patient'>
-            <div className='flex flex-col gap-3 sm:flex-row'>
-              <input className='field' name='patientMedicalId' value={searchValues.patientMedicalId} onChange={handleSearchInput} placeholder='Enter patient medical ID' />
-              <button onClick={() => searchRecord('patient')} className='inline-flex items-center justify-center gap-2 rounded-2xl bg-[var(--brand)] px-5 py-3 text-sm font-bold text-white transition hover:bg-[var(--brand-deep)]'>
-                <Search className='h-4 w-4' />
-                Search patient
-              </button>
-            </div>
-            {searchResults.patient ? (
-              <div className='mt-5 rounded-[1.5rem] bg-white/70 p-4 text-sm text-stone-700'>
-                <p><strong>Name:</strong> {searchResults.patient.fullName}</p>
-                <p><strong>Blood type:</strong> {searchResults.patient.bloodType}</p>
-                <p><strong>Organs needed:</strong> {searchResults.patient.organs.join(', ')}</p>
-                <p><strong>Contact:</strong> {searchResults.patient.contactNumber}</p>
-              </div>
-            ) : null}
-          </SectionCard>
-        </section>
-
-        <SectionCard title='Pending pledge verification' eyebrow='Approve donor pledges'>
-          <div className='space-y-4'>
-            {pledges.length === 0 ? (
-              <div className='rounded-[1.5rem] border border-dashed border-stone-300 bg-white/60 px-5 py-8 text-center text-sm text-stone-500'>
-                No pending pledges right now.
-              </div>
-            ) : (
-              pledges.map((pledge) => (
-                <div key={pledge._id} className='flex flex-col gap-4 rounded-[1.5rem] border border-stone-200/80 bg-white/70 p-5 lg:flex-row lg:items-center lg:justify-between'>
-                  <div className='space-y-1 text-sm text-stone-700'>
-                    <p className='text-lg font-extrabold text-stone-950'>{pledge.fullName}</p>
-                    <p>Medical ID: {pledge.medicalId}</p>
-                    <p>Blood type: {pledge.bloodType}</p>
-                    <p>Organs: {pledge.organs.join(', ')}</p>
-                    <p>Contact: {pledge.contactNumber}</p>
-                  </div>
-                  <button onClick={() => approvePledge(pledge._id)} className='rounded-full bg-[var(--brand)] px-5 py-3 text-sm font-bold text-white transition hover:bg-[var(--brand-deep)]'>
-                    Verify and add donor
-                  </button>
-                </div>
-              ))
-            )}
+              return (
+                <button
+                  key={tab.key}
+                  type='button'
+                  onClick={() => setActiveTab(tab.key)}
+                  className={`rounded-[1.5rem] border px-4 py-4 text-left transition ${
+                    active
+                      ? 'border-[var(--brand)] bg-[var(--brand)] text-white shadow-lg shadow-sky-900/10'
+                      : 'border-stone-200/80 bg-white/75 text-stone-700 hover:border-[var(--brand)]/40 hover:bg-white'
+                  }`}
+                >
+                  <p className={`text-sm font-extrabold ${active ? 'text-white' : 'text-stone-900'}`}>
+                    {tab.label}
+                  </p>
+                  <p className={`mt-1 text-sm ${active ? 'text-white/80' : 'text-stone-500'}`}>
+                    {tab.description}
+                  </p>
+                </button>
+              )
+            })}
           </div>
-        </SectionCard>
+        </section>
 
-        <section className='grid gap-6'>
-          <SectionCard title='Registered donors' eyebrow='View donors'>
-            <DataTable columns={['fullName', 'medicalId', 'bloodType', 'organs', 'contactNumber']} rows={donors} emptyMessage='No donors registered yet.' />
-          </SectionCard>
+        <section className='space-y-6'>
+          <div className='flex items-center justify-between'>
+            <div>
+              <p className='text-xs font-bold uppercase tracking-[0.28em] text-stone-500'>
+                Dashboard section
+              </p>
+              <h2 className='section-title mt-2 text-2xl font-extrabold text-stone-950'>
+                {dashboardTabs.find((tab) => tab.key === activeTab)?.label}
+              </h2>
+            </div>
+          </div>
 
-          <SectionCard title='Registered patients' eyebrow='View patients'>
-            <DataTable columns={['fullName', 'medicalId', 'bloodType', 'organs', 'contactNumber']} rows={patients} emptyMessage='No patients registered yet.' />
-          </SectionCard>
-
-          <SectionCard title='Transplant matches' eyebrow='Potential recommendations'>
-            <DataTable columns={['patientName', 'patientMedicalId', 'requiredOrgan', 'recipientBloodType', 'donorName', 'donorMedicalId', 'donorBloodType']} rows={matches} emptyMessage='No matches available yet.' />
-          </SectionCard>
+          {renderActiveTab()}
         </section>
       </div>
     </div>

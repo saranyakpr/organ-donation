@@ -3,7 +3,7 @@ const envConfig = {
   mongoDbUri:
     'mongodb+srv://admin:admin%40123@cluster0.uvw80do.mongodb.net/?appName=Cluster0',
   jwtSecret: 'change-this-secret',
-  clientUrl: 'http://localhost:5173',
+  allowedOrigins: ['http://localhost:5173'],
 }
 
 export default envConfig

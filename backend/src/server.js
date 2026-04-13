@@ -12,10 +12,34 @@ import pledgeRoutes from './routes/pledgeRoutes.js'
 
 const app = express()
 const port = envConfig.port || 5000
+const allowedOrigins = envConfig.allowedOrigins || ['http://localhost:5173']
+
+const isAllowedOrigin = (origin) => {
+  if (!origin) {
+    return true
+  }
+
+  if (allowedOrigins.includes(origin)) {
+    return true
+  }
+
+  try {
+    const { hostname } = new URL(origin)
+    return hostname.endsWith('.vercel.app')
+  } catch {
+    return false
+  }
+}
 
 app.use(
   cors({
-    origin: envConfig.clientUrl || 'http://localhost:5173',
+    origin(origin, callback) {
+      if (isAllowedOrigin(origin)) {
+        return callback(null, true)
+      }
+
+      return callback(new Error(`CORS blocked for origin: ${origin}`))
+    },
   })
 )
 app.use(express.json())

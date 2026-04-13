@@ -32,6 +32,11 @@ const PublicSiteLayout = ({ children }) => (
                 </NavLink>
               </li>
             ))}
+            <li>
+              <NavLink to='/login' className='public-login-button'>
+                Login
+              </NavLink>
+            </li>
           </ul>
         </nav>
       </div>

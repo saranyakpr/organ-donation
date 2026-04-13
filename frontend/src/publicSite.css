@@ -64,6 +64,26 @@
   color: #fff;
 }
 
+.public-login-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0.45rem 1rem;
+  border-radius: 4px;
+  background: #005f82;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.public-login-button:hover {
+  background: #004964;
+  color: #fff;
+}
+
 .public-main {
   min-height: calc(100vh - 231px);
 }

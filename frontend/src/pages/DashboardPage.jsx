@@ -392,7 +392,7 @@ const DashboardPage = () => {
                     <p>Organs: {pledge.organs.join(', ')}</p>
                     <p>Contact: {pledge.contactNumber}</p>
                   </div>
-                  <button onClick={() => approvePledge(pledge._id)} className='rounded-full bg-emerald-700 px-5 py-3 text-sm font-bold text-white transition hover:bg-emerald-800'>
+                  <button onClick={() => approvePledge(pledge._id)} className='rounded-full bg-[var(--brand)] px-5 py-3 text-sm font-bold text-white transition hover:bg-[var(--brand-deep)]'>
                     Verify and add donor
                   </button>
                 </div>

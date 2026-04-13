@@ -2,14 +2,14 @@
 
 :root {
   color-scheme: light;
-  --bg: #f4efe6;
+  --bg: #eaf7fd;
   --panel: rgba(255, 255, 255, 0.72);
-  --stroke: rgba(113, 79, 52, 0.12);
-  --text: #22160f;
-  --brand: #8c3d2b;
-  --brand-deep: #5d2317;
-  --brand-soft: #ead4ca;
-  --shadow: 0 24px 60px rgba(58, 29, 20, 0.12);
+  --stroke: rgba(0, 95, 130, 0.12);
+  --text: #12303d;
+  --brand: #0079a8;
+  --brand-deep: #005f82;
+  --brand-soft: #d5ecf5;
+  --shadow: 0 24px 60px rgba(0, 95, 130, 0.12);
   font-family: 'Montserrat', system-ui, sans-serif;
 }
 
@@ -27,9 +27,9 @@ body {
   min-height: 100vh;
   color: var(--text);
   background:
-    radial-gradient(circle at top left, rgba(224, 194, 170, 0.65), transparent 28%),
-    radial-gradient(circle at 85% 15%, rgba(162, 214, 208, 0.35), transparent 24%),
-    linear-gradient(180deg, #fff8f3 0%, #f7f0e8 45%, #f3ece3 100%);
+    radial-gradient(circle at top left, rgba(148, 225, 255, 0.65), transparent 28%),
+    radial-gradient(circle at 85% 15%, rgba(0, 121, 168, 0.16), transparent 24%),
+    linear-gradient(180deg, #f8fdff 0%, #eef9fd 45%, #e6f5fb 100%);
 }
 
 a {
@@ -57,7 +57,7 @@ textarea {
 
 .mesh-card {
   background:
-    linear-gradient(135deg, rgba(140, 61, 43, 0.95), rgba(93, 35, 23, 0.92)),
+    linear-gradient(135deg, rgba(0, 121, 168, 0.96), rgba(0, 95, 130, 0.92)),
     linear-gradient(45deg, rgba(255, 255, 255, 0.12), transparent 70%);
 }
 
@@ -68,7 +68,7 @@ textarea {
 .field {
   width: 100%;
   border-radius: 1rem;
-  border: 1px solid rgba(113, 79, 52, 0.16);
+  border: 1px solid rgba(0, 95, 130, 0.16);
   background: rgba(255, 255, 255, 0.86);
   padding: 0.85rem 1rem;
   color: var(--text);
@@ -77,8 +77,8 @@ textarea {
 }
 
 .field:focus {
-  border-color: rgba(140, 61, 43, 0.55);
-  box-shadow: 0 0 0 4px rgba(140, 61, 43, 0.08);
+  border-color: rgba(0, 121, 168, 0.55);
+  box-shadow: 0 0 0 4px rgba(0, 121, 168, 0.08);
   transform: translateY(-1px);
 }
 
@@ -104,7 +104,7 @@ textarea {
 .table-scroll th,
 .table-scroll td {
   white-space: nowrap;
-  border-bottom: 1px solid rgba(113, 79, 52, 0.1);
+  border-bottom: 1px solid rgba(0, 95, 130, 0.1);
   padding: 0.95rem 0.85rem;
   text-align: left;
 }

@@ -411,6 +411,8 @@
   border: 1px solid #ccc;
   border-radius: 4px;
   padding: 12px 20px;
+  background-color: #ffffff;
+  color: #123043;
 }
 
 .public-choice-group {
